@@ -75,32 +75,25 @@ app.post("/mcp", async (req, res) => {
   // MCP tool discovery
   if (method === "tools/list") {
     return res.json({
-      tools: [
-        {
-          name: "send_email",
-          description: "Send an email via Outlook on behalf of ECC Exteriors. Use for sending reports, alerts, and summaries to team members.",
-          inputSchema: {
-            type: "object",
-            required: ["to", "subject", "body"],
-            properties: {
-              to: {
-                oneOf: [
-                  { type: "string", description: "Single recipient email address" },
-                  { type: "array", items: { type: "string" }, description: "Multiple recipient email addresses" }
-                ]
-              },
-              subject: { type: "string", description: "Email subject line" },
-              body: { type: "string", description: "Email body — HTML is supported for formatted reports" },
-              cc: {
-                oneOf: [
-                  { type: "string", description: "Single CC email address" },
-                  { type: "array", items: { type: "string" }, description: "Multiple CC email addresses" }
-                ]
+      jsonrpc: "2.0", id,
+      result: {
+        tools: [
+          {
+            name: "send_email",
+            description: "Send an email via Outlook on behalf of ECC Exteriors.",
+            inputSchema: {
+              type: "object",
+              required: ["to", "subject", "body"],
+              properties: {
+                to: { type: "string", description: "Recipient email address" },
+                subject: { type: "string", description: "Email subject line" },
+                body: { type: "string", description: "Email body — HTML supported" },
+                cc: { type: "string", description: "CC email address (optional)" }
               }
             }
           }
-        }
-      ]
+        ]
+      }
     });
   }
 
@@ -110,14 +103,20 @@ app.post("/mcp", async (req, res) => {
     if (name === "send_email") {
       try {
         const result = await sendEmail(args);
-        return res.json({ content: [{ type: "text", text: JSON.stringify(result) }] });
+        return res.json({
+          jsonrpc: "2.0", id,
+          result: { content: [{ type: "text", text: JSON.stringify(result) }] }
+        });
       } catch (err) {
-        return res.status(500).json({ error: err.message });
+        return res.json({
+          jsonrpc: "2.0", id,
+          error: { code: -32000, message: err.message }
+        });
       }
     }
   }
 
-  res.status(404).json({ error: "Unknown method" });
+  res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found" } });
 });
 
 // Health check
