@@ -1,1 +1,2 @@
 # ecc-mail-mcp
+start
